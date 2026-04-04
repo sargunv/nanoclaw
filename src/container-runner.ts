@@ -302,10 +302,17 @@ async function buildContainerArgs(
       if (fs.existsSync(javaCacerts) && !fs.existsSync(jksTruststore)) {
         fs.copyFileSync(javaCacerts, jksTruststore);
         execFileSync(keytool, [
-          '-import', '-trustcacerts', '-alias', 'onecli',
-          '-file', '/tmp/onecli-proxy-ca.pem',
-          '-keystore', jksTruststore,
-          '-storepass', 'changeit', '-noprompt',
+          '-import',
+          '-trustcacerts',
+          '-alias',
+          'onecli',
+          '-file',
+          '/tmp/onecli-proxy-ca.pem',
+          '-keystore',
+          jksTruststore,
+          '-storepass',
+          'changeit',
+          '-noprompt',
         ]);
       }
       if (fs.existsSync(jksTruststore)) {
