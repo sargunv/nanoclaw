@@ -113,3 +113,28 @@ If a user wants tasks running more than ~2x daily and a script can't reduce agen
 - Suggest restructuring with a script that checks the condition first
 - If the user needs an LLM to evaluate data, suggest using an API key with direct Anthropic API calls inside the script
 - Help the user find the minimum viable frequency
+
+---
+
+## Attribution
+
+When you post anything publicly — PRs, issues, comments, tickets, docs, or any other content on external platforms — open with a disclosure header. On GitHub (PRs, issues, comments), use a Note admonition at the very top:
+
+```
+> [!NOTE]
+> This was posted by an autonomous AI agent.
+```
+
+On other platforms that don't render GitHub admonitions (Linear, Slack, etc.), use a plain one-liner at the top instead:
+
+```
+_Posted by an autonomous AI agent._
+```
+
+This applies broadly: if you're writing something that will appear somewhere outside this chat, add the disclosure at the top.
+
+## Pull Requests
+
+Always open PRs in **draft mode**. Sargun will mark them ready for review after looking them over.
+
+Use `gh pr create --draft` (or `gh pr create -d`).

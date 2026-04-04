@@ -24,7 +24,29 @@ RUN apt-get update && apt-get install -y \
     libxshmfence1 \
     curl \
     git \
-    && rm -rf /var/lib/apt/lists/*
+    gpg \
+    xz-utils \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+       | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+       > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y gh && rm -rf /var/lib/apt/lists/*
+
+# Install linear-cli from GitHub releases
+RUN curl -fsSL https://github.com/schpet/linear-cli/releases/latest/download/linear-$(uname -m)-unknown-linux-gnu.tar.xz \
+       | tar xJ --strip-components=1 -C /usr/local/bin
+
+
+# Install mise for toolchain management
+# Data/config/cache dirs are mounted from host for persistence across runs
+ENV MISE_DATA_DIR="/home/node/.local/share/mise"
+ENV MISE_CONFIG_DIR="/home/node/.local/share/mise/config"
+ENV MISE_CACHE_DIR="/home/node/.local/share/mise/cache"
+ENV MISE_STATE_DIR="/home/node/.local/share/mise/state"
+ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
+ENV PATH="/home/node/.local/share/mise/shims:$PATH"
+RUN curl https://mise.run | sh
 
 # Set Chromium path for agent-browser
 ENV AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium

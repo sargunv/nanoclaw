@@ -1,0 +1,11 @@
+[tools]
+java = "lts"
+node = "22"
+
+[tasks."tail:service"]
+description = "Tail NanoClaw service logs"
+run = "journalctl --user -u nanoclaw -f --no-pager"
+
+[tasks."tail:container"]
+description = "Tail the running agent container logs"
+run = "docker logs -f $(docker ps --filter name=nanoclaw -q --latest)"

@@ -2,7 +2,7 @@
  * Container Runner for NanoClaw
  * Spawns agent execution in containers and handles IPC
  */
-import { ChildProcess, spawn } from 'child_process';
+import { ChildProcess, execFileSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -151,6 +151,17 @@ function buildVolumeMounts(
             // https://code.claude.com/docs/en/memory#manage-auto-memory
             CLAUDE_CODE_DISABLE_AUTO_MEMORY: '0',
           },
+          enabledPlugins: {
+            'linear-cli@linear-cli': true,
+          },
+          extraKnownMarketplaces: {
+            'linear-cli': {
+              source: {
+                source: 'github',
+                repo: 'schpet/linear-cli',
+              },
+            },
+          },
         },
         null,
         2,
@@ -172,6 +183,15 @@ function buildVolumeMounts(
   mounts.push({
     hostPath: groupSessionsDir,
     containerPath: '/home/node/.claude',
+    readonly: false,
+  });
+
+  // Shared mise directory for persistent toolchain installations across runs
+  const miseDir = path.join(DATA_DIR, 'mise');
+  fs.mkdirSync(miseDir, { recursive: true });
+  mounts.push({
+    hostPath: miseDir,
+    containerPath: '/home/node/.local/share/mise',
     readonly: false,
   });
 
@@ -243,6 +263,21 @@ async function buildContainerArgs(
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
 
+  // Git author/committer identity for commits made inside the container
+  args.push('-e', 'GIT_AUTHOR_NAME=NanoClaw');
+  args.push('-e', 'GIT_AUTHOR_EMAIL=sargunv@users.noreply.github.com');
+  args.push('-e', 'GIT_COMMITTER_NAME=NanoClaw');
+  args.push('-e', 'GIT_COMMITTER_EMAIL=sargunv@users.noreply.github.com');
+
+  // gh CLI requires GH_TOKEN to be set or it refuses to run.
+  // The real token is injected by OneCLI at the HTTPS layer — this
+  // placeholder just satisfies gh's "am I logged in?" check.
+  args.push('-e', 'GH_TOKEN=onecli-managed');
+
+  // linear-cli reads LINEAR_API_KEY for authentication.
+  // Real key is injected by OneCLI at the HTTPS layer.
+  args.push('-e', 'LINEAR_API_KEY=onecli-managed');
+
   // OneCLI gateway handles credential injection — containers never see real secrets.
   // The gateway intercepts HTTPS traffic and injects API keys or OAuth tokens.
   const onecliApplied = await onecli.applyContainerConfig(args, {
@@ -250,6 +285,49 @@ async function buildContainerArgs(
     agent: agentIdentifier,
   });
   if (onecliApplied) {
+    // OneCLI sets SSL_CERT_FILE and NODE_EXTRA_CA_CERTS, but other runtimes
+    // need their own env vars pointing to the same combined CA bundle.
+    const caBundle = '/tmp/onecli-combined-ca.pem';
+    args.push('-e', `DENO_CERT=${caBundle}`); // Deno (linear-cli)
+    args.push('-e', `REQUESTS_CA_BUNDLE=${caBundle}`); // Python requests/pip
+    args.push('-e', `CURL_CA_BUNDLE=${caBundle}`); // libcurl fallback
+    // Java/Kotlin: build a JKS truststore with the OneCLI CA on the host,
+    // then mount it read-only so Gradle, Maven, etc. trust the proxy.
+    const jksTruststore = '/tmp/onecli-truststore.jks';
+    try {
+      const javaHome = process.env.JAVA_HOME;
+      if (!javaHome) throw new Error('JAVA_HOME not set');
+      const keytool = path.join(javaHome, 'bin', 'keytool');
+      const javaCacerts = path.join(javaHome, 'lib', 'security', 'cacerts');
+      if (fs.existsSync(javaCacerts) && !fs.existsSync(jksTruststore)) {
+        fs.copyFileSync(javaCacerts, jksTruststore);
+        execFileSync(keytool, [
+          '-import', '-trustcacerts', '-alias', 'onecli',
+          '-file', '/tmp/onecli-proxy-ca.pem',
+          '-keystore', jksTruststore,
+          '-storepass', 'changeit', '-noprompt',
+        ]);
+      }
+      if (fs.existsSync(jksTruststore)) {
+        args.push(
+          ...readonlyMountArgs(jksTruststore, '/tmp/onecli-truststore.jks'),
+        );
+        args.push(
+          '-e',
+          'JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=/tmp/onecli-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit',
+        );
+      }
+    } catch (err) {
+      logger.error({ err }, 'Failed to build JKS truststore for Java');
+      throw err;
+    }
+    // Override the system CA store so Chromium/Playwright trust the proxy
+    // without --ignore-certificate-errors. The host-side combined bundle
+    // (system CAs + OneCLI CA) is mounted over the container's default store.
+    const hostCaBundle = '/tmp/onecli-combined-ca.pem';
+    args.push(
+      ...readonlyMountArgs(hostCaBundle, '/etc/ssl/certs/ca-certificates.crt'),
+    );
     logger.info({ containerName }, 'OneCLI gateway config applied');
   } else {
     logger.warn(

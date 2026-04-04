@@ -499,6 +499,29 @@ async function runQuery(
         : message.type;
     log(`[msg #${messageCount}] type=${msgType}`);
 
+    // Log assistant message content blocks (thinking, text, tool_use)
+    if (message.type === 'assistant' && 'message' in message) {
+      const betaMsg = (message as { message: { content?: Array<{ type: string; text?: string; name?: string; input?: unknown; thinking?: string }> } }).message;
+      if (betaMsg.content) {
+        for (const block of betaMsg.content) {
+          if (block.type === 'thinking' && block.thinking) {
+            log(`  [thinking] ${block.thinking.slice(0, 300)}${block.thinking.length > 300 ? '...' : ''}`);
+          } else if (block.type === 'text' && block.text) {
+            log(`  [text] ${block.text.slice(0, 300)}${block.text.length > 300 ? '...' : ''}`);
+          } else if (block.type === 'tool_use') {
+            log(`  [tool] ${block.name}${block.input ? ` ${JSON.stringify(block.input).slice(0, 200)}` : ''}`);
+          } else if (block.type === 'tool_result') {
+            log(`  [tool_result]`);
+          }
+        }
+      }
+    }
+
+    // Log tool use summary messages
+    if (message.type === 'tool_use_summary' && 'summary' in message) {
+      log(`  [tool_summary] ${(message as { summary: string }).summary.slice(0, 300)}`);
+    }
+
     if (message.type === 'assistant' && 'uuid' in message) {
       lastAssistantUuid = (message as { uuid: string }).uuid;
     }
