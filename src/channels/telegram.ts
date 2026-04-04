@@ -454,9 +454,15 @@ export class TelegramChannel implements Channel {
           await this.bot.api.sendDocument(numericId, file, opts);
           break;
       }
-      logger.info({ jid, filePath, mediaType, threadId }, 'Telegram media sent');
+      logger.info(
+        { jid, filePath, mediaType, threadId },
+        'Telegram media sent',
+      );
     } catch (err) {
-      logger.error({ jid, filePath, mediaType, err }, 'Failed to send Telegram media');
+      logger.error(
+        { jid, filePath, mediaType, err },
+        'Failed to send Telegram media',
+      );
     }
   }
 

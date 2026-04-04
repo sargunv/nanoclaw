@@ -83,8 +83,7 @@ export function startIpcWatcher(deps: IpcDeps): void {
               // Authorization: verify this group can send to this chatJid
               const targetGroup = registeredGroups[data.chatJid];
               const authorized =
-                isMain ||
-                (targetGroup && targetGroup.folder === sourceGroup);
+                isMain || (targetGroup && targetGroup.folder === sourceGroup);
 
               if (data.type === 'message' && data.chatJid && data.text) {
                 if (authorized) {
