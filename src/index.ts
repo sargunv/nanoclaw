@@ -769,6 +769,13 @@ async function main(): Promise<void> {
       if (!channel) throw new Error(`No channel for JID: ${jid}`);
       return channel.sendMessage(jid, text);
     },
+    sendMedia: (jid, filePath, mediaType, caption) => {
+      const channel = findChannel(channels, jid);
+      if (!channel?.sendMedia) {
+        throw new Error(`No channel with media support for JID: ${jid}`);
+      }
+      return channel.sendMedia(jid, filePath, mediaType, caption);
+    },
     registeredGroups: () => registeredGroups,
     registerGroup,
     syncGroups: async (force: boolean) => {

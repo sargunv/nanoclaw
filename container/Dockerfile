@@ -26,17 +26,7 @@ RUN apt-get update && apt-get install -y \
     git \
     gpg \
     xz-utils \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-       | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-       > /etc/apt/sources.list.d/github-cli.list \
-    && apt-get update && apt-get install -y gh && rm -rf /var/lib/apt/lists/*
-
-# Install linear-cli from GitHub releases
-RUN curl -fsSL https://github.com/schpet/linear-cli/releases/latest/download/linear-$(uname -m)-unknown-linux-gnu.tar.xz \
-       | tar xJ --strip-components=1 -C /usr/local/bin
-
+    && rm -rf /var/lib/apt/lists/*
 
 # Install mise for toolchain management
 # Data/config/cache dirs are mounted from host for persistence across runs
@@ -47,6 +37,9 @@ ENV MISE_STATE_DIR="/home/node/.local/share/mise/state"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 ENV PATH="/home/node/.local/share/mise/shims:$PATH"
 RUN curl https://mise.run | sh
+
+# Bake in base tools config via conf.d (agent manages its own config.toml)
+COPY mise-base.toml /home/node/.local/share/mise/config/conf.d/base.toml
 
 # Set Chromium path for agent-browser
 ENV AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium
@@ -77,7 +70,7 @@ RUN mkdir -p /workspace/group /workspace/global /workspace/extra /workspace/ipc/
 # Container input (prompt, group info) is passed via stdin JSON.
 # Credentials are injected by the host's credential proxy — never passed here.
 # Follow-up messages arrive via IPC files in /workspace/ipc/input/
-RUN printf '#!/bin/bash\nset -e\ncd /app && npx tsc --outDir /tmp/dist 2>&1 >&2\nln -s /app/node_modules /tmp/dist/node_modules\nchmod -R a-w /tmp/dist\ncat > /tmp/input.json\nnode /tmp/dist/index.js < /tmp/input.json\n' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+RUN printf '#!/bin/bash\nset -e\nmise install --yes 2>&1 >&2\nmise reshim 2>&1 >&2\ncd /app && npx tsc --outDir /tmp/dist 2>&1 >&2\nln -s /app/node_modules /tmp/dist/node_modules\nchmod -R a-w /tmp/dist\ncat > /tmp/input.json\nnode /tmp/dist/index.js < /tmp/input.json\n' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # Set ownership to node user (non-root) for writable directories
 RUN chown -R node:node /workspace && chmod 777 /home/node
