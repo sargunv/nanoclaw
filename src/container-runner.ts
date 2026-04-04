@@ -203,6 +203,16 @@ function buildVolumeMounts(
     containerPath: '/home/node/.local/share/mise',
     readonly: false,
   });
+  // Mount base tools config into conf.d (layered over the directory mount)
+  const baseToml = path.join(projectRoot, 'container', 'mise-base.toml');
+  if (fs.existsSync(baseToml)) {
+    fs.mkdirSync(path.join(miseDir, 'config', 'conf.d'), { recursive: true });
+    mounts.push({
+      hostPath: baseToml,
+      containerPath: '/home/node/.local/share/mise/config/conf.d/base.toml',
+      readonly: true,
+    });
+  }
 
   // Per-group IPC namespace: each group gets its own IPC directory
   // This prevents cross-group privilege escalation via IPC

@@ -23,8 +23,10 @@ RUN apt-get update && apt-get install -y \
     libdrm2 \
     libxshmfence1 \
     curl \
+    ffmpeg \
     git \
     gpg \
+    imagemagick \
     xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
@@ -37,9 +39,6 @@ ENV MISE_STATE_DIR="/home/node/.local/share/mise/state"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 ENV PATH="/home/node/.local/share/mise/shims:$PATH"
 RUN curl https://mise.run | sh
-
-# Bake in base tools config via conf.d (agent manages its own config.toml)
-COPY mise-base.toml /home/node/.local/share/mise/config/conf.d/base.toml
 
 # Set Chromium path for agent-browser
 ENV AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium

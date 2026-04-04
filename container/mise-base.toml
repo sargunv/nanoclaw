@@ -1,7 +1,9 @@
 # Base tools baked into the container image.
 # The agent can install additional tools via its own config.toml.
+[settings]
+experimental = true
+
 [tools]
-ffmpeg = "latest"
 gh = "latest"
 "github:schpet/linear-cli" = "latest"
 java = "lts"
