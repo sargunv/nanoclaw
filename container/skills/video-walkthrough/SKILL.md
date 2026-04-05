@@ -19,6 +19,14 @@ If the project uses mise and declares `"npm:@playwright/cli"` as a tool (e.g. in
 mise x "npm:@playwright/cli@0.1.1" -- playwright-cli <command>
 ```
 
+### Install the browser
+
+On a fresh container (or after the browser cache is cleared), install the browser before opening:
+
+```bash
+playwright-cli install-browser
+```
+
 ### Open a browser session
 
 The web app must already be running. Start it using the project's dev command (e.g. `mise run dev`),
@@ -28,7 +36,7 @@ then open a browser session pointing at it:
 playwright-cli open <url>
 ```
 
-## Basic recording
+## Recording
 
 ```bash
 playwright-cli video-start
@@ -51,65 +59,40 @@ playwright-cli screenshot         # capture current state
 
 **Always re-snapshot** after navigation or significant DOM changes — refs go stale after re-renders.
 
+To run multi-step interactions in one call (avoids repeated bash overhead):
+
+```bash
+playwright-cli run-code "async (page) => {
+  await page.goto('http://localhost:5173');
+  await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
+  await page.getByRole('textbox', { name: 'Password' }).fill('password');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL('**/');
+}"
+```
+
 To scroll an off-screen element into view before interacting:
 
 ```bash
 playwright-cli eval "document.querySelector('...').scrollIntoView({behavior:'instant',block:'center'})"
 ```
 
-## Polished recordings
-
-For demos with chapter title cards and callout overlays, use `run-code` with the `page.screencast`
-API:
-
-```bash
-playwright-cli run-code --file /tmp/walkthrough-script.js
-```
-
-```js
-// /tmp/walkthrough-script.js — run after browser is already open
-await page.screencast.start({ path: '/workspace/group/walkthrough.webm', size: { width: 1280, height: 720 } });
-
-// Full-screen chapter card with blurred backdrop
-await page.screencast.showChapter('Feature Name', {
-  description: 'What this section demonstrates',
-  duration: 2500,
-});
-
-// Navigate and interact
-await page.goto('http://localhost:...');
-await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
-
-// HTML overlay (pointer-events: none — won't block clicks)
-const box = await page.locator('button').boundingBox();
-const highlight = await page.screencast.showOverlay(
-  `<div style="position:fixed;top:${box.y}px;left:${box.x}px;width:${box.width}px;height:${box.height}px;outline:2px solid #e55;border-radius:4px;pointer-events:none"></div>`
-);
-await page.click('button');
-highlight.dispose();
-
-await page.screencast.stop();
-```
-
-Key `page.screencast` APIs:
-- `start({ path, size })` — begin recording to a file
-- `showChapter(title, { description?, duration? })` — full-screen title card
-- `showOverlay(html, { duration? })` — sticky HTML overlay; returns a disposable
-- `disposable.dispose()` — remove a specific overlay
-- `stop()` — finalize and write the video file
-
-For natural-looking typing use `pressSequentially` with a delay:
-
-```js
-await page.getByRole('textbox').pressSequentially('hello world', { delay: 60 });
-```
-
 ## Sending the result
 
-The video must be in `/workspace/group/` — the `mcp__nanoclaw__send_media` tool only reads from
-there. Use that path when recording (shown above), then call the tool:
+Convert to MP4 before sending — WebM isn't handled natively by most messaging apps (Telegram,
+WhatsApp) and requires a download to view:
 
-- `file_path`: `/workspace/group/walkthrough.webm`
+```bash
+ffmpeg -y -i /workspace/group/walkthrough.webm \
+  -c:v libx264 -preset fast -crf 23 \
+  -c:a aac -movflags +faststart \
+  /workspace/group/walkthrough.mp4
+```
+
+The video must be in `/workspace/group/` — the `mcp__nanoclaw__send_media` tool only reads from
+there. Then call the tool:
+
+- `file_path`: `/workspace/group/walkthrough.mp4`
 - `media_type`: `video`
 - `caption`: brief description of what the video shows
 
@@ -117,4 +100,5 @@ there. Use that path when recording (shown above), then call the tool:
 
 - `video-stop` → "Video recording has not been started" — daemon died; re-run
   `playwright-cli open <url>` and restart recording
+- Browser not found — run `playwright-cli install-browser` (no arguments)
 - Refs fail with "not an input" — stale refs; re-run `playwright-cli snapshot` to get fresh ones
