@@ -10,6 +10,17 @@ Record a video walkthrough of a running web app and send it.
 
 ## Prerequisites
 
+### playwright-cli availability
+
+If the project uses mise and declares `"npm:@playwright/cli"` as a tool (e.g. in `mise.toml`),
+`playwright-cli` is available after `mise install`. For any other project, run it via mise:
+
+```bash
+mise x "npm:@playwright/cli@0.1.1" -- playwright-cli <command>
+```
+
+### Open a browser session
+
 The web app must already be running. Start it using the project's dev command (e.g. `mise run dev`),
 then open a browser session pointing at it:
 
@@ -22,7 +33,7 @@ playwright-cli open <url>
 ```bash
 playwright-cli video-start
 # interact with the app (see below)
-playwright-cli video-stop --filename=/tmp/walkthrough.webm
+playwright-cli video-stop --filename=/workspace/group/walkthrough.webm
 ```
 
 `video-start` and `video-stop` work across separate bash calls — recording state lives in the
@@ -57,7 +68,7 @@ playwright-cli run-code --file /tmp/walkthrough-script.js
 
 ```js
 // /tmp/walkthrough-script.js — run after browser is already open
-await page.screencast.start({ path: '/tmp/walkthrough.webm', size: { width: 1280, height: 720 } });
+await page.screencast.start({ path: '/workspace/group/walkthrough.webm', size: { width: 1280, height: 720 } });
 
 // Full-screen chapter card with blurred backdrop
 await page.screencast.showChapter('Feature Name', {
@@ -95,22 +106,15 @@ await page.getByRole('textbox').pressSequentially('hello world', { delay: 60 });
 
 ## Sending the result
 
-After recording (either method), use the `mcp__nanoclaw__send_media` tool — not from inside a
-`run-code` script, but as an agent tool call:
+The video must be in `/workspace/group/` — the `mcp__nanoclaw__send_media` tool only reads from
+there. Use that path when recording (shown above), then call the tool:
 
-- `file_path`: `/tmp/walkthrough.webm`
+- `file_path`: `/workspace/group/walkthrough.webm`
 - `media_type`: `video`
 - `caption`: brief description of what the video shows
 
-Copy to persistent workspace if you want it to survive a container reset:
-
-```bash
-cp /tmp/walkthrough.webm /workspace/group/walkthrough.webm
-```
-
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| `video-stop` → "Video recording has not been started" | Daemon died — re-run `playwright-cli open <url>` and restart recording |
-| Refs fail with "not an input" | Stale refs — re-run `playwright-cli snapshot` to get fresh ones |
+- `video-stop` → "Video recording has not been started" — daemon died; re-run
+  `playwright-cli open <url>` and restart recording
+- Refs fail with "not an input" — stale refs; re-run `playwright-cli snapshot` to get fresh ones

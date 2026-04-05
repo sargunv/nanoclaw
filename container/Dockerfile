@@ -74,8 +74,9 @@ RUN printf '#!/bin/bash\nset -e\nmise install --yes 2>&1 >&2\nmise reshim 2>&1 >
 # Set ownership to node user (non-root) for writable directories
 RUN chown -R node:node /workspace && chmod 777 /home/node
 
-# Pre-create directories that tools (tilt, etc.) need to write to at runtime
-RUN mkdir -p /home/node/.local/share/tilt-dev && chown -R node:node /home/node/.local
+# Ensure XDG base dirs exist and are owned by node so tools can create subdirs at runtime
+RUN mkdir -p /home/node/.local/share /home/node/.config /home/node/.cache \
+  && chown -R node:node /home/node/.local /home/node/.config /home/node/.cache
 
 # Bypass proxy for localhost — container proxy intercepts local traffic without this
 ENV NO_PROXY=localhost,127.0.0.1
