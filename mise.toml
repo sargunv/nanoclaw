@@ -9,3 +9,20 @@ run = "journalctl --user -u nanoclaw -f --no-pager"
 [tasks."tail:container"]
 description = "Tail the running agent container logs"
 run = "docker logs -f $(docker ps --filter name=nanoclaw -q --latest)"
+
+[tasks."build:host"]
+description = "Compile TypeScript"
+run = "npm run build"
+
+[tasks."build:container"]
+description = "Rebuild the agent container image"
+run = "./container/build.sh"
+
+[tasks.build]
+description = "Build host and container"
+depends = ["build:host", "build:container"]
+
+[tasks.restart]
+description = "Rebuild everything and restart the NanoClaw service"
+depends = ["build"]
+run = "systemctl --user restart nanoclaw"

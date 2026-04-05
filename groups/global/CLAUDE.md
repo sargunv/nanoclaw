@@ -133,8 +133,9 @@ _Posted by an autonomous AI agent._
 
 This applies broadly: if you're writing something that will appear somewhere outside this chat, add the disclosure at the top.
 
-## Pull Requests
+## Learnings
 
-Always open PRs in **draft mode**. Sargun will mark them ready for review after looking them over.
-
-Use `gh pr create --draft` (or `gh pr create -d`).
+- Always open PRs in **draft mode** — use `gh pr create --draft`. The user will mark them ready for review after looking them over.
+- **Use `send_message` for anything substantive** — only your final output message (wrapped in `---NANOCLAW_OUTPUT_START---` / `---NANOCLAW_OUTPUT_END---`) is ever visible to the user. Everything else, including all mid-turn output, is invisible unless sent via `send_message`. Any answer, update, or flag should go through `send_message`.
+- **Flag friction immediately via `send_message`** — even if you've already found a workaround. Describe both the blocker and the workaround so the user can decide if a proper fix is worth it.
+- **Clone repos to `/workspace/group/`**, not `/tmp/` — `/tmp/` is wiped on container reset, `/workspace/group/` persists.
