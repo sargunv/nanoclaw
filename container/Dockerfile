@@ -74,6 +74,10 @@ RUN printf '#!/bin/bash\nset -e\nmise install --yes 2>&1 >&2\nmise reshim 2>&1 >
 # Set ownership to node user (non-root) for writable directories
 RUN chown -R node:node /workspace && chmod 777 /home/node
 
+# Ensure XDG base dirs exist and are owned by node so tools can create subdirs at runtime
+RUN mkdir -p /home/node/.local/share /home/node/.config /home/node/.cache \
+  && chown -R node:node /home/node/.local /home/node/.config /home/node/.cache
+
 # Switch to non-root user (required for --dangerously-skip-permissions)
 USER node
 
