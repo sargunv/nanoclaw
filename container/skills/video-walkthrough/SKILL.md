@@ -95,14 +95,12 @@ await page.getByRole('textbox').pressSequentially('hello world', { delay: 60 });
 
 ## Sending the result
 
-```js
-// Sends immediately to the current chat via the send_media MCP tool
-mcp__nanoclaw__send_media({
-  file_path: '/tmp/walkthrough.webm',
-  media_type: 'video',
-  caption: 'Brief description of what the video shows',
-})
-```
+After recording (either method), use the `mcp__nanoclaw__send_media` tool — not from inside a
+`run-code` script, but as an agent tool call:
+
+- `file_path`: `/tmp/walkthrough.webm`
+- `media_type`: `video`
+- `caption`: brief description of what the video shows
 
 Copy to persistent workspace if you want it to survive a container reset:
 
