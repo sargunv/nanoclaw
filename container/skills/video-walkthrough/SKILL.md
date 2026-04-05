@@ -79,10 +79,20 @@ playwright-cli eval "document.querySelector('...').scrollIntoView({behavior:'ins
 
 ## Sending the result
 
-The video must be in `/workspace/group/` — the `mcp__nanoclaw__send_media` tool only reads from
-there. Use that path when recording (shown above), then call the tool:
+Convert to MP4 before sending — WebM isn't handled natively by most messaging apps (Telegram,
+WhatsApp) and requires a download to view:
 
-- `file_path`: `/workspace/group/walkthrough.webm`
+```bash
+ffmpeg -y -i /workspace/group/walkthrough.webm \
+  -c:v libx264 -preset fast -crf 23 \
+  -c:a aac -movflags +faststart \
+  /workspace/group/walkthrough.mp4
+```
+
+The video must be in `/workspace/group/` — the `mcp__nanoclaw__send_media` tool only reads from
+there. Then call the tool:
+
+- `file_path`: `/workspace/group/walkthrough.mp4`
 - `media_type`: `video`
 - `caption`: brief description of what the video shows
 
