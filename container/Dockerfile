@@ -78,10 +78,6 @@ RUN chown -R node:node /workspace && chmod 777 /home/node
 RUN mkdir -p /home/node/.local/share /home/node/.config /home/node/.cache \
   && chown -R node:node /home/node/.local /home/node/.config /home/node/.cache
 
-# Bypass proxy for localhost — container proxy intercepts local traffic without this
-ENV NO_PROXY=localhost,127.0.0.1
-ENV no_proxy=localhost,127.0.0.1
-
 # Switch to non-root user (required for --dangerously-skip-permissions)
 USER node
 

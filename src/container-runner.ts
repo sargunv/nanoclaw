@@ -301,6 +301,9 @@ async function buildContainerArgs(
     args.push('-e', `DENO_CERT=${caBundle}`); // Deno (linear-cli)
     args.push('-e', `REQUESTS_CA_BUNDLE=${caBundle}`); // Python requests/pip
     args.push('-e', `CURL_CA_BUNDLE=${caBundle}`); // libcurl fallback
+    // Bypass proxy for localhost — OneCLI proxy intercepts local traffic without this
+    args.push('-e', 'NO_PROXY=localhost,127.0.0.1');
+    args.push('-e', 'no_proxy=localhost,127.0.0.1');
     // Java/Kotlin: build a JKS truststore with the OneCLI CA on the host,
     // then mount it read-only so Gradle, Maven, etc. trust the proxy.
     const jksTruststore = '/tmp/onecli-truststore.jks';
